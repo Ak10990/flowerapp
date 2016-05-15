@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">FlowerApp</string>
+
+    <string name="search_hint">Enter by name</string>
+    <string name="app_label">Label</string>
+
+    <string name="search">Search</string>
+    <string name="sort">Sort alphabetically</string>
+    <string name="sort_az">A - Z</string>
+    <string name="sort_za">Z - A</string>
+    <string name="sort_by">Sort By</string>
+</resources>
