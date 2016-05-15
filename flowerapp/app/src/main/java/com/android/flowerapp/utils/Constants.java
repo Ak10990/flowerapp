@@ -11,4 +11,5 @@ public class Constants {
     public static String FETCHED_API_FAILURE = "com.android.flowerapp.fetchedapifailure";
     public static String FETCHED_API_RESULT = "com.android.flowerapp.fetchedapiresult";
     public static String FETCHED_API_ERROR = "com.android.flowerapp.fetchedapierror";
+
 }

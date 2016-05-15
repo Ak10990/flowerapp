@@ -4,17 +4,19 @@ import android.content.Context;
 import android.net.Uri;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.ImageButton;
 import android.widget.TextView;
 
 import com.android.flowerapp.FlowerApp;
 import com.android.flowerapp.R;
 import com.android.flowerapp.models.Flower;
+import com.android.flowerapp.models.FlowerDb;
 import com.android.flowerapp.utils.ShareUtils;
 import com.facebook.drawee.view.SimpleDraweeView;
 
@@ -53,34 +55,10 @@ public class FlowerListAdapter extends RecyclerView.Adapter<FlowerListAdapter.Vi
             url = "";
         }
         holder.itemImage.setImageURI(Uri.parse(url));
-        holder.itemImage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ImageDialog dialog = new ImageDialog(mContext);
-                dialog.showDialog(flower.getUrl());
-            }
-        });
 
         holder.favButton.setChecked(flower.isFavorite());
-        holder.favButton.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-//                mList.get(holder.getAdapterPosition()).setFavorite(isChecked);
-                synchronized (objectLock) {
-                    Realm realm = FlowerApp.getRealm();
-                    realm.beginTransaction();
-                    flower.setFavorite(isChecked);
-                    realm.commitTransaction();
-//                    notifyItemChanged(holder.getAdapterPosition());
-                }
-            }
-        });
-        holder.shareButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                ShareUtils.message(mContext, "", "Name : " + flower.getName() + "\nImage Url : " + flower.getUrl());
-            }
-        });
+        holder.itemView.setTag(position);
+        holder.favButton.setTag(position);
     }
 
     @Override
@@ -88,7 +66,7 @@ public class FlowerListAdapter extends RecyclerView.Adapter<FlowerListAdapter.Vi
         return mList.size();
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder {
+    public class ViewHolder extends RecyclerView.ViewHolder implements OnClickListener {
 
         TextView itemText;
         SimpleDraweeView itemImage;
@@ -101,6 +79,38 @@ public class FlowerListAdapter extends RecyclerView.Adapter<FlowerListAdapter.Vi
             itemText = (TextView) view.findViewById(R.id.item_text);
             favButton = (CheckBox) view.findViewById(R.id.fav_button);
             shareButton = (ImageButton) view.findViewById(R.id.share_button);
+            favButton.setOnClickListener(this);
+            itemImage.setOnClickListener(this);
+            shareButton.setOnClickListener(this);
+        }
+
+        @Override
+        public void onClick(View view) {
+            int position = (int) itemView.getTag();
+            Flower flower = mList.get(position);
+            switch (view.getId()) {
+                case R.id.share_button:
+                    ShareUtils.message(mContext, "", "Name : " + flower.getName() + "\nImage Url : " + flower.getUrl());
+                    break;
+                case R.id.item_image:
+                    ImageDialog dialog = new ImageDialog(mContext);
+                    dialog.showDialog(flower.getUrl());
+                    break;
+                case R.id.fav_button:
+                    boolean isChecked = !mList.get(position).isFavorite();
+                    synchronized (objectLock) {
+                        mList.get(position).setFavorite(isChecked);
+                        FlowerDb flowerDb = mList.get(position).getFlowerDb();
+                        Realm realm = FlowerApp.getRealm();
+                        realm.beginTransaction();
+                        realm.copyToRealmOrUpdate(flowerDb);
+                        realm.commitTransaction();
+                        notifyDataSetChanged();
+                        Log.d("Printing", "hererererere" + FlowerApp.getRealm().allObjects(FlowerDb.class).get(0));
+                    }
+                    break;
+            }
+
         }
     }
 

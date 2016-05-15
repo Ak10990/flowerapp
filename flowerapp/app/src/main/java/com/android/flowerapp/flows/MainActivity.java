@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v4.content.LocalBroadcastManager;
@@ -18,11 +19,16 @@ import com.android.flowerapp.FlowerApp;
 import com.android.flowerapp.R;
 import com.android.flowerapp.helpers.FlowerModelHelper;
 import com.android.flowerapp.models.Flower;
+import com.android.flowerapp.models.FlowerDb;
 import com.android.flowerapp.service.FetchDataService;
 import com.android.flowerapp.utils.AlertToastUtils;
 import com.android.flowerapp.utils.Constants;
 
 import java.util.ArrayList;
+
+import io.realm.Realm;
+import io.realm.RealmConfiguration;
+import io.realm.RealmResults;
 
 /**
  * Created by akanksha on 14/5/16.
@@ -89,7 +95,7 @@ public class MainActivity extends AppCompatActivity implements SortDialogCallbac
     private void fetchData() {
         AlertToastUtils.showProgressDialog(this, "Loading...");
         if (FlowerApp.getprefs().getBoolean(Constants.IS_FIRST_LOAD, false)) {
-            initFragment(FlowerModelHelper.loadAlbumsFromDb());
+            new FetchDbAsyncTask().execute();
         } else {
             Intent intent = new Intent(this, FetchDataService.class);
             startService(intent);
@@ -114,6 +120,27 @@ public class MainActivity extends AppCompatActivity implements SortDialogCallbac
     private void replaceFragment(ArrayList<Flower> flowers) {
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
         ft.replace(R.id.frag_container, FlowerListFragment.getInstance(flowers)).commit();
+    }
+
+    private class FetchDbAsyncTask extends AsyncTask<Void, Void, ArrayList<Flower>> {
+        @Override
+        protected ArrayList<Flower> doInBackground(Void... params) {
+            RealmConfiguration realmConfig = new RealmConfiguration.Builder(getApplicationContext()).build();
+            Realm realm = Realm.getInstance(realmConfig);
+            RealmResults<FlowerDb> list = realm.allObjects(FlowerDb.class);
+            ArrayList<Flower> flowerList = new ArrayList<>();
+            for (FlowerDb albumDb : list) {
+                flowerList.add(new Flower().getFlowerFromDb(albumDb));
+            }
+            return flowerList;
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<Flower> flowerlist) {
+            super.onPostExecute(flowerlist);
+            initFragment(flowerlist);
+            AlertToastUtils.stopProgressDialog();
+        }
     }
 
 }
